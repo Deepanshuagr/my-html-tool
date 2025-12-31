@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content to Full HTML Generator</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  font-family:'Segoe UI','Nirmala UI',Tahoma;
+  background:#f5f7fa;
+  margin:0;
+  padding:0;
+  color:#333;
+  line-height:1.8
+}
+.div-container{
+  max-width:1000px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  box-shadow:0 0 20px rgba(0,0,0,.1)
+}
+
+/* ===== TEXT ===== */
+p{font-size:1.05em;margin-bottom:15px}
+ul,ol{padding-left:30px;margin-bottom:15px}
+li{margin-bottom:8px}
+strong{font-weight:600;color:#1a365d}
+
+/* ===== IMAGE ===== */
+figure{text-align:center;margin:25px 0}
+figure img{max-width:100%;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+figcaption{font-size:.95em;color:#555;margin-top:6px}
+
+/* ===== TABLE ===== */
+.table-wrap{overflow-x:auto;margin:25px 0}
+table{width:100%;min-width:600px;border-collapse:collapse}
+th,td{border:1px solid #cbd5e0;padding:10px}
+th{background:#2b6cb0;color:#fff}
+tr:nth-child(even){background:#f7fafc}
+
+/* ===== BOXES ===== */
+.highlight-box{
+  background:#fffaf0;
+  padding:18px;
+  border-left:5px solid #dd6b20;
+  margin:25px 0
+}
+.definition-box{
+  background:#f0fff4;
+  padding:18px;
+  border-left:5px solid #38a169;
+  margin:25px 0
+}
+
+/* ===== CODE ===== */
+.code-block{
+  background:#1e1e1e;
+  color:#f8f8f2;
+  padding:15px;
+  border-radius:8px;
+  overflow-x:auto;
+  font-family:Consolas,monospace;
+  margin:25px 0
+}
+
+/* Definition Box */
+.definition-box {
+  background: #f0f7ff;
+  border-left: 5px solid #3b82f6;
+  padding: 15px 18px;
+  margin: 20px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  border-radius: 6px;
+}
+
+/* Quote Box */
+.quote-box {
+  background: #fff7ed;
+  border-left: 5px solid #f59e0b;
+  padding: 18px 20px;
+  margin: 25px 0;
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.7;
+  border-radius: 6px;
+  position: relative;
+}
+
+/* Optional quote icon */
+.quote-box::before {
+  content: "“";
+  font-size: 40px;
+  color: #f59e0b;
+  position: absolute;
+  top: 5px;
+  left: 10px;
+}
+
+
+/* ===== TOOL UI ===== */
+textarea{
+  width:100%;
+  min-height:220px;
+  padding:12px;
+  font-size:15px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  margin:10px 0
+}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+button{
+  padding:12px;
+  border:none;
+  border-radius:6px;
+  font-size:15px;
+  cursor:pointer;
+  flex:1;
+  background:#764ba2;
+  color:#fff
+}
+button.copy{background:#2b6cb0}
+button.preview{background:#38a169}
+
+/* ===== PREVIEW ===== */
+.preview-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999
+}
+.preview-box{
+  background:#fff;
+  width:95%;
+  max-width:1000px;
+  height:90%;
+  border-radius:10px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column
+}
+.preview-header{
+  background:#2b6cb0;
+  color:#fff;
+  padding:10px;
+  display:flex;
+  justify-content:space-between
+}
+.preview-header button{
+  background:#e53e3e;
+  padding:6px 12px;
+  font-size:14px
+}
+.preview-box iframe{flex:1;border:none}
+</style>
+</head>
+
+<body>
+
+<div class="div-container">
+
+<h2>Content Paste करें</h2>
+<textarea id="input"></textarea>
+
+<button onclick="convert()">Generate HTML</button>
+
+<h2>Generated FULL HTML</h2>
+<textarea id="output"></textarea>
+
+<div class="btn-row">
+  <button class="copy" onclick="copyCode()">Copy All HTML</button>
+  <button class="preview" onclick="previewHTML()">Preview</button>
+</div>
+
+</div>
+
+<div class="preview-modal" id="previewModal">
+  <div class="preview-box">
+    <div class="preview-header">
+      <span>HTML Preview</span>
+      <button onclick="closePreview()">Close</button>
+    </div>
+    <iframe id="previewFrame"></iframe>
+  </div>
+</div>
+
+<script>
+function applyBold(text){
+  return text.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
+}
+
+function convert(){
+  let lines=input.value.split("\n");
+  let c="",p="",ul=false,ol=false,table=false,code=false,rows=[];
+
+  const fp=()=>{
+    if(p.trim()){
+      c+=`  <p>${applyBold(p)}</p>\n`;
+      p="";
+    }
+  };
+  const cul=()=>{if(ul){c+="  </ul>\n";ul=false}};
+  const col=()=>{if(ol){c+="  </ol>\n";ol=false}};
+
+  const ft=()=>{
+    if(rows.length){
+      c+=`  <div class="table-wrap">\n    <table>\n      <thead><tr>\n`;
+      rows[0].split("|").forEach(h=>c+=`        <th>${applyBold(h.trim())}</th>\n`);
+      c+=`      </tr></thead>\n      <tbody>\n`;
+      rows.slice(1).forEach(r=>{
+        c+=`        <tr>\n`;
+        r.split("|").forEach(d=>c+=`          <td>${applyBold(d.trim())}</td>\n`);
+        c+=`        </tr>\n`;
+      });
+      c+=`      </tbody>\n    </table>\n  </div>\n`;
+      rows=[];
+    }
+  };
+
+  lines.forEach(l=>{
+    l=l.trim();
+    if(!l){fp();cul();col();return}
+
+    if(l==="[table]"){fp();cul();col();table=true;return}
+    if(l==="[/table]"){table=false;ft();return}
+    if(table){rows.push(l);return}
+
+    if(l==="[code]"){fp();cul();col();c+=`  <div class="code-block"><pre>\n`;code=true;return}
+    if(l==="[/code]"){c+=`  </pre></div>\n`;code=false;return}
+    if(code){c+=applyBold(l)+"\n";return}
+
+    if(l.startsWith("# ")){
+      fp();cul();col();
+      c+=`  <h1 style="color:#1a365d;text-align:center;border-bottom:3px solid #2b6cb0;padding-bottom:10px">${applyBold(l.slice(2))}</h1>\n`;
+      return;
+    }
+    if(l.startsWith("## ")){
+      fp();cul();col();
+      c+=`  <h2 style="color:#2b6cb0;border-left:5px solid #4299e1;padding:10px;background:#ebf4ff">${applyBold(l.slice(3))}</h2>\n`;
+      return;
+    }
+    if(l.startsWith("### ")){
+      fp();cul();col();
+      c+=`  <h3 style="color:#4a5568;margin-top:20px">${applyBold(l.slice(4))}</h3>\n`;
+      return;
+    }
+
+    if(/^\d+\.\s/.test(l)){
+      fp();cul();
+      if(!ol){c+="  <ol>\n";ol=true}
+      c+=`    <li>${applyBold(l.replace(/^\d+\.\s/,""))}</li>\n`;
+      return;
+    }
+
+    if(l.startsWith("- ")){
+      fp();col();
+      if(!ul){c+="  <ul>\n";ul=true}
+      c+=`    <li>${applyBold(l.slice(2))}</li>\n`;
+      return;
+    }
+
+    if(l==="[highlight]"){fp();cul();col();c+=`  <div class="highlight-box">\n`;return}
+    if(l==="[/highlight]"){fp();c+=`  </div>\n`;return}
+    if(l==="[definition]"){fp();cul();col();c+=`  <div class="definition-box">\n`;return}
+    if(l==="[/definition]"){fp();c+=`  </div>\n`;return}
+if(l==="[quote]"){
+  fp();
+  cul();
+  col();
+  c+=`  <div class="quote-box">\n`;
+  return;
+}
+
+if(l==="[/quote]"){
+  fp();
+  c+=`  </div>\n`;
+  return;
+}
+
+    p+=(p?" ":"")+l;
+  });
+
+  fp();cul();col();ft();
+
+  output.value=
+`<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> </title>
+  <style>
+	/* Hide blog-entry-header only on this page */
+        .blog-entry-header {
+            display: none !important;
+        } 
+      
+      	div.container.row-x1{padding: 0 !important;}
+      
+      	#content-wrapper {
+            padding: 0 !important;
+        }
+        .entry-content-wrap{padding:0;}
+
+${document.querySelector("style").innerHTML}
+  </style>
+</head>
+<body>
+  <div class="div-container">
+${c}
+  </div>
+</body>
+</html>`;
+}
+
+function copyCode(){
+  output.select();
+  navigator.clipboard.writeText(output.value);
+  alert("HTML Copy ho gaya");
+}
+function previewHTML(){
+  previewFrame.srcdoc=output.value;
+  previewModal.style.display="flex";
+}
+function closePreview(){
+  previewModal.style.display="none";
+}
+</script>
+
+</body>
+</html>
