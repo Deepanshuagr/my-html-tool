@@ -253,13 +253,41 @@ function convert(){
     l=l.trim();
     if(!l){fp();cul();col();return}
 
-    if(l==="[table]"){fp();cul();col();table=true;return}
-    if(l==="[/table]"){table=false;ft();return}
-    if(table){rows.push(l);return}
+    if (l.replace(/\*\*/g, "").trim() === "[table]") {
+  fp(); cul(); col();
+  table = true;
+  return;
+}
 
-    if(l==="[code]"){fp();cul();col();c+=`  <div class="code-block"><pre>\n`;code=true;return}
-    if(l==="[/code]"){c+=`  </pre></div>\n`;code=false;return}
-    if(code){c+=applyBold(l)+"\n";return}
+if (l.replace(/\*\*/g, "").trim() === "[/table]") {
+  table = false;
+  ft();
+  return;
+}
+
+if (table) {
+  rows.push(l);
+  return;
+}
+
+if (l.replace(/\*\*/g, "").trim() === "[code]") {
+  fp(); cul(); col();
+  c += `  <div class="code-block"><pre>\n`;
+  code = true;
+  return;
+}
+
+if (l.replace(/\*\*/g, "").trim() === "[/code]") {
+  c += `  </pre></div>\n`;
+  code = false;
+  return;
+}
+
+if (code) {
+  c += applyBold(l) + "\n";
+  return;
+}
+
 
     if(l.startsWith("# ")){
       fp();cul();col();
@@ -291,28 +319,47 @@ function convert(){
       return;
     }
 
-    if(l==="[highlight]"){fp();cul();col();c+=`  <div class="highlight-box">\n`;return}
-    if(l==="[/highlight]"){fp();c+=`  </div>\n`;return}
-    if(l==="[definition]"){fp();cul();col();c+=`  <div class="definition-box">\n`;return}
-    if(l==="[/definition]"){fp();c+=`  </div>\n`;return}
-if(l==="[quote]"){
-  fp();
-  cul();
-  col();
-  c+=`  <div class="quote-box">\n`;
+ if (l.replace(/\*\*/g, "").trim() === "[highlight]") {
+  fp(); cul(); col();
+  c += `  <div class="highlight-box">\n`;
   return;
 }
 
-if(l==="[/quote]"){
+if (l.replace(/\*\*/g, "").trim() === "[/highlight]") {
   fp();
-  c+=`  </div>\n`;
+  c += `  </div>\n`;
   return;
 }
 
-    p+=(p?" ":"")+l;
-  });
+if (l.replace(/\*\*/g, "").trim() === "[definition]") {
+  fp(); cul(); col();
+  c += `  <div class="definition-box">\n`;
+  return;
+}
 
-  fp();cul();col();ft();
+if (l.replace(/\*\*/g, "").trim() === "[/definition]") {
+  fp();
+  c += `  </div>\n`;
+  return;
+}
+
+if (l.replace(/\*\*/g, "").trim() === "[quote]") {
+  fp(); cul(); col();
+  c += `  <div class="quote-box">\n`;
+  return;
+}
+
+if (l.replace(/\*\*/g, "").trim() === "[/quote]") {
+  fp();
+  c += `  </div>\n`;
+  return;
+}
+
+p += (p ? " " : "") + l;
+});
+
+fp(); cul(); col(); ft();
+
 
   output.value=
 `<!DOCTYPE html>
@@ -366,4 +413,3 @@ document.getElementById("refreshTool").addEventListener("click", function () {
 
 </body>
 </html>
-
